@@ -14,17 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.storage.sync.set({ geminiApiKey: apiKey }, () => {
             const successMessage = document.getElementById("success-message");
             successMessage.style.display = "block";
-
-            // Close the tab after a short delay to show the success message
             setTimeout(() => {
-            window.close();
-            // For cases where window.close() doesn't work (like when opened programmatically)
-            chrome.tabs.getCurrent((tab) => {
-                if (tab) {
-                chrome.tabs.remove(tab.id);
-                } 
-            });
-            }, 1000);
+                successMessage.style.display = "none";
+            }, 3000);
         });
         }
     });
