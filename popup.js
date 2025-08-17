@@ -62,11 +62,17 @@ document.getElementById("summarize").addEventListener("click", async () => {
     }
     });
 
+const GEMINI_CONFIG = {
+    API_URL: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=",
+    MAX_LENGTH: 20000,
+    TEMPERATURE: 0.2,
+    };
+
     async function getGeminiSummary(text, summaryType, apiKey) {
-    // Truncate very long texts to avoid API limits (typically around 30K tokens)
-    const maxLength = 20000;
     const truncatedText =
-        text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
+        text.length > GEMINI_CONFIG.MAX_LENGTH
+        ? text.substring(0, GEMINI_CONFIG.MAX_LENGTH) + "..."
+        : text;
 
     let prompt;
     switch (summaryType) {
@@ -84,27 +90,28 @@ document.getElementById("summarize").addEventListener("click", async () => {
     }
 
     try {
-        const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-            contents: [
-                {
-                parts: [{ text: prompt }],
-                },
-            ],
+        const res = await fetch(`${GEMINI_CONFIG.API_URL}${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
-                temperature: 0.2,
+            temperature: GEMINI_CONFIG.TEMPERATURE,
             },
-            }),
-        }
-        );
+        }),
+        });
 
         if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error?.message || "API request failed");
+        const errorMessage = errorData.error?.message || "API request failed";
+        if (res.status === 400) {
+            throw new Error(
+            `Invalid API Key. Please check your settings. Details: ${errorMessage}`
+            );
+        }
+        throw new Error(
+            `API request failed with status ${res.status}: ${errorMessage}`
+        );
         }
 
         const data = await res.json();
@@ -114,6 +121,7 @@ document.getElementById("summarize").addEventListener("click", async () => {
         );
     } catch (error) {
         console.error("Error calling Gemini API:", error);
-        throw new Error("Failed to generate summary. Please try again later.");
+        // Re-throw the specific error message
+        throw error;
     }
 }
